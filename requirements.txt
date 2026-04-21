@@ -1,0 +1,7 @@
+ollama
+sentence-transformers
+chromadb
+mysql-connector-python
+python-dotenv
+requests
+pytest
