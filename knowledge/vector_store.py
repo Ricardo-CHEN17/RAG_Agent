@@ -1,5 +1,5 @@
 import chromadb
-from chromadb import PersistantClient
+from chromadb import PersistentClient
 import logging
 from typing import List, Dict, Any
 
