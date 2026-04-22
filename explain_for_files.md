@@ -338,7 +338,7 @@ main.py
 9. `agent/message.py`：先实现 `Message`/`ToolCall` 数据结构，供后续模型调用与工具回传统一使用。
 10. `knowledge/embedder.py`：向量化能力已初步实现（含设备自动选择、输入校验、错误处理），下一步补充更完整单测。
 11. `knowledge/vector_store.py`：向量存储与检索已初步实现（含参数校验、结果格式化、异常处理）。
-12. `knowledge/vector_store.py` 修正项：优先将 `PersistantClient` 更正为 `PersistentClient`，并完成回归测试。
+12. `knowledge/vector_store.py` 完成回归测试。
 13. `knowledge/indexer.py`：实现离线建库流程（依赖 vector_store）。
 14. `tools/file_tools.py`：实现文件系统工具（低耦合，先完成便于联调）。
 15. `tools/rag_tool.py`：实现检索工具（依赖 embedder/vector_store）。

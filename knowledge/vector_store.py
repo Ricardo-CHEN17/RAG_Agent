@@ -16,7 +16,7 @@ class VectorStore:
         logger.info(f"Initializing VectorStore with persist directory: {persist_dir}")
 
         try:
-            client = self.client = PersistantClient(path=persist_dir)
+            client = self.client = PersistentClient(path=persist_dir)
             self.client = client
 
             collection = self.client.get_or_create_collection(name=collection_name)
