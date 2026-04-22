@@ -8,9 +8,13 @@ import torch
 logger = logging.getLogger(__name__)
 
 class Embedder:
+    """Wrapper around SentenceTransformer for single and batch embeddings."""
+
     def __init__(self, model_name: str = "all-MiniLM-L6-v2", device: str = None):
+        """Initialize the embedding model and choose the execution device."""
         self.model_name = model_name
 
+        # Auto-select the best available device unless explicitly provided.
         if device is None:
             if torch.cuda.is_available():
                 self.device = "cuda"
@@ -32,10 +36,12 @@ class Embedder:
             raise RuntimeError(error_msg) from e
 
     def embed(self, text: str) -> List[float]:
+        """Generate an embedding vector for a single text input."""
         if not isinstance(text, str):
             raise TypeError("Input text must be a string.")
         if text.strip() == "":
             raise ValueError("Input text cannot be empty.")
+        
         try:
             embedding = self.model.encode(text)
             return embedding.tolist()  # Convert to list for easier storage
@@ -45,6 +51,7 @@ class Embedder:
             raise RuntimeError(error_msg) from e
         
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
+        """Generate embedding vectors for a list of texts in one model call."""
         if not isinstance(texts, list):
             raise TypeError("Input must be a list of strings.")
         if len(texts) == 0:
@@ -58,6 +65,7 @@ class Embedder:
 
         start_time = time.time()
         try:
+            # Batch encoding is typically faster than repeated single calls.
             embeddings = self.model.encode(texts)
         except Exception as e:
             error_msg = f"Failed to generate embeddings for batch: {str(e)}"

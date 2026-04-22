@@ -194,9 +194,15 @@ pytest
 - **用途**：加载 Sentence-Transformer 模型，提供文本向量化接口。
 - **需要实现的类**：
 - `class Embedder`：
-  - `__init__(self, model_name: str = "all-MiniLM-L6-v2")`：使用 `sentence_transformers.SentenceTransformer` 加载模型。
+  - `__init__(self, model_name: str = "all-MiniLM-L6-v2", device: str = None)`：
+    - 使用 `sentence_transformers.SentenceTransformer` 加载模型。
+    - 当 `device` 未传入时，按 `cuda -> mps -> cpu` 自动选择可用设备。
+    - 模型加载失败时抛出 `RuntimeError`。
   - `embed(self, text: str) -> List[float]`：将单个文本转为向量列表。
+    - 对输入做类型与空字符串校验。
   - `embed_batch(self, texts: List[str]) -> List[List[float]]`：批量转换（用于索引文档）。
+    - 对列表与元素逐项校验，空列表直接返回 `[]`。
+    - 记录批量向量化耗时日志。
 - **依赖包**：`sentence_transformers`
 - **被谁调用**：`knowledge/vector_store.py`（存储时）、`tools/rag_tool.py`（查询时）
 
@@ -206,8 +212,10 @@ pytest
 - **用途**：封装 Chroma 向量数据库，实现添加文档块和相似性检索。
 - **需要实现的类**：
 - `class VectorStore`：
-  - `__init__(self, persist_dir: str, embedder: Embedder)`：
-    - 初始化 Chroma 客户端：`chromadb.PersistentClient(path=persist_dir)`
+  - `__init__(self, persist_dir: str, embedder: Any, collection_name: str = "doc_chunks")`：
+    - 初始化 Chroma 客户端并连接持久化目录。
+    - 创建或获取指定 collection（默认 `doc_chunks`）。
+    - 当前实现使用 `PersistantClient`（拼写与官方 `PersistentClient` 不一致），应作为下一步修正项。
     - 创建或获取 collection（如 `doc_chunks`）。
     - 保存 `embedder` 引用（用于查询时生成向量）。
   - `add_chunks(self, chunks: List[Dict])`：
@@ -217,9 +225,14 @@ pytest
   - `similarity_search(self, query: str, top_k: int) -> List[Dict]`：
     - 调用 `embedder.embed(query)` 获取查询向量。
     - 调用 `collection.query(query_embeddings=[query_vector], n_results=top_k)`。
-    - 返回结果列表，每个结果包含 `document`、`metadata`、`distance`。
+    - 返回结果列表，每个结果包含 `id`、`text`、`metadata`、`distance`。
+    - 当没有检索结果时返回空列表。
 - **依赖包**：`chromadb`
 - **被谁调用**：`knowledge/indexer.py`（添加）、`tools/rag_tool.py`（检索）
+
+- **当前状态补充（基于现有代码）**：
+  - `add_chunks` 与 `similarity_search` 已包含异常捕获和 `RuntimeError` 包装。
+  - `similarity_search` 已对 `query` 和 `top_k` 做参数校验。
 
 ---
 
@@ -323,21 +336,22 @@ main.py
 7. `knowledge/__init__.py`：建立包结构。
 8. `db/__init__.py`：建立包结构。
 9. `agent/message.py`：先实现 `Message`/`ToolCall` 数据结构，供后续模型调用与工具回传统一使用。
-10. `knowledge/embedder.py`：实现向量化能力。
-11. `knowledge/vector_store.py`：实现向量存储与检索（依赖 embedder）。
-12. `knowledge/indexer.py`：实现离线建库流程（依赖 vector_store）。
-13. `tools/file_tools.py`：实现文件系统工具（低耦合，先完成便于联调）。
-14. `tools/rag_tool.py`：实现检索工具（依赖 embedder/vector_store）。
-15. `db/mysql_client.py`：实现数据库客户端（v1 可完成基础能力，供可选工具使用）。
-16. `tools/mysql_tool.py`：实现只读 SQL 工具（v1 可选，放在后面）。
-17. `tools/executor.py`：实现工具路由中心，串联 file/rag/mysql 三类工具。
-18. `agent/model_client.py`：实现 Ollama chat + tools 调用封装。
-19. `agent/controller.py`：实现 Agent 主循环（调用 model_client + tool_executor）。
-20. `main.py`：实现 REPL 入口、日志初始化、依赖装配与运行流程。
-21. `tests/test_tools.py`：优先验证文件工具与 RAG 工具。
-22. `tests/test_rag.py`：验证向量存储与索引流程。
-23. `tests/test_controller.py`：验证主循环、工具调用迭代、超时分支。
-24. `logs/`：无需手写文件，运行 `main.py` 后确认日志文件自动生成。
+10. `knowledge/embedder.py`：向量化能力已初步实现（含设备自动选择、输入校验、错误处理），下一步补充更完整单测。
+11. `knowledge/vector_store.py`：向量存储与检索已初步实现（含参数校验、结果格式化、异常处理）。
+12. `knowledge/vector_store.py` 修正项：优先将 `PersistantClient` 更正为 `PersistentClient`，并完成回归测试。
+13. `knowledge/indexer.py`：实现离线建库流程（依赖 vector_store）。
+14. `tools/file_tools.py`：实现文件系统工具（低耦合，先完成便于联调）。
+15. `tools/rag_tool.py`：实现检索工具（依赖 embedder/vector_store）。
+16. `db/mysql_client.py`：实现数据库客户端（v1 可完成基础能力，供可选工具使用）。
+17. `tools/mysql_tool.py`：实现只读 SQL 工具（v1 可选，放在后面）。
+18. `tools/executor.py`：实现工具路由中心，串联 file/rag/mysql 三类工具。
+19. `agent/model_client.py`：实现 Ollama chat + tools 调用封装。
+20. `agent/controller.py`：实现 Agent 主循环（调用 model_client + tool_executor）。
+21. `main.py`：实现 REPL 入口、日志初始化、依赖装配与运行流程。
+22. `tests/test_tools.py`：优先验证文件工具与 RAG 工具。
+23. `tests/test_rag.py`：验证向量存储与索引流程。
+24. `tests/test_controller.py`：验证主循环、工具调用迭代、超时分支。
+25. `logs/`：无需手写文件，运行 `main.py` 后确认日志文件自动生成。
 
 补充建议：
 - 每完成一个模块就先写对应测试再进入下一模块，问题定位成本最低。
