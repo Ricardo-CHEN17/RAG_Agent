@@ -1,3 +1,5 @@
+"""File system helper tools used by the agent tool executor."""
+
 import os
 import logging
 from typing import Any
@@ -5,10 +7,14 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 class FileTools:
+    """Expose safe, read-only file operations for tool calls."""
+
     def __init__(self):
+        """Initialize FileTools instance."""
         pass
 
     def list_files(self, path: str) -> str:
+        """Return sorted directory entries as a newline-separated string."""
         if not path or not isinstance(path, str):
             return f"Error: Invalid path provided."
         if not os.path.exists(path):
@@ -34,6 +40,7 @@ class FileTools:
         return result
 
     def read_file(self, file_path: str, max_chars: int = 10000) -> str:
+        """Read UTF-8 text content and truncate if it exceeds max_chars."""
         if not file_path or not isinstance(file_path, str):
             return f"Error: Invalid file path provided."
         if not os.path.exists(file_path):

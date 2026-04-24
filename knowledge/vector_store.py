@@ -1,3 +1,5 @@
+"""Persistent vector store adapter built on top of ChromaDB."""
+
 import chromadb
 from chromadb import PersistentClient
 import logging
@@ -9,7 +11,7 @@ class VectorStore:
     """ChromaDB-backed vector storage for document chunks and retrieval."""
 
     def __init__(self, persist_dir: str, embedder: Any, collection_name: str = "doc_chunks"):
-        """Initialize persistent client and target collection."""
+        """Initialize persistent client, collection, and embedding dependency."""
         self.persist_dir = persist_dir
         self.embedder = embedder
 
@@ -64,7 +66,7 @@ class VectorStore:
             query_vector = self.embedder.embed(query)
             results = self.collection.query(
                 query_embeddings=[query_vector],
-                n_results=top_k,
+                n_results=top_k
             )
 
             # Normalize Chroma's nested response to a flat list of result dicts.

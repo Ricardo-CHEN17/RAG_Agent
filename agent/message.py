@@ -1,15 +1,20 @@
+"""Message and tool-call data models used in agent/model interactions."""
+
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
 
 @dataclass
 class ToolCall:
+    """Structured representation of a single tool call payload."""
+
     id: str
     type: str
     function_name: str
     arguments: str
 
     def to_dict(self) -> Dict[str, Any]:
+        """Serialize the tool call into OpenAI/Ollama-compatible dict format."""
         return {
             "id": self.id,
             "type": self.type,
@@ -22,6 +27,8 @@ class ToolCall:
 
 @dataclass
 class Message:
+    """Canonical chat message object exchanged with model APIs."""
+
     role: str
     content: str
     tool_calls: Optional[List[Dict[str, Any]]] = None
@@ -29,6 +36,7 @@ class Message:
     name: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
+        """Serialize the message while omitting optional fields when absent."""
         data: Dict[str, Any] = {
             "role": self.role,
             "content": self.content,

@@ -1,3 +1,5 @@
+"""Offline directory indexer that chunks text files and stores embeddings."""
+
 import os
 import hashlib
 import logging
@@ -6,7 +8,10 @@ from typing import List, Dict, Any
 logger = logging.getLogger(__name__)
 
 class Indexer:
+    """Build and persist vector-store chunks from local text documents."""
+
     def __init__(self, vector_store: Any, chunk_size: int = 500, chunk_overlap: int = 50):
+        """Configure chunking behavior and store the vector store dependency."""
         if chunk_overlap >= chunk_size:
             raise ValueError("Chunk overlap must be smaller than chunk size.")
 
@@ -17,6 +22,7 @@ class Indexer:
         logger.info(f"Indexer initialized with chunk size: {chunk_size} and chunk overlap: {chunk_overlap}")
         
     def _read_text_file(self, file_path: str) -> str:
+        """Read UTF-8 text from file and return an empty string on failure."""
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 return f.read()
@@ -28,6 +34,7 @@ class Indexer:
             return ""
         
     def _split_text(self, text: str) -> List[str]:
+        """Split text into overlapping fixed-size chunks."""
         if not text or not text.strip():
             logger.debug("No text to split.")
             return []
@@ -47,6 +54,7 @@ class Indexer:
         return chunks
     
     def index_directory(self, directory_path: str, file_extensions: List[str] = None) -> None:
+        """Index files under directory_path that match file_extensions."""
         if file_extensions is None:
             file_extensions = ['.txt', '.md']
         
