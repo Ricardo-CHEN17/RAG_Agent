@@ -160,8 +160,8 @@ pytest
 - `class RAGTool`：
   - `__init__(self, embedder, vector_store)`：接收 `knowledge/embedder.py` 中的 Embedder 实例和 `knowledge/vector_store.py` 中的 VectorStore 实例。
   - `search_knowledge(self, query: str, top_k: int = 3) -> str`：
-    - 调用 `embedder.embed(query)` 获取查询向量。
-    - 调用 `vector_store.similarity_search(query_vector, top_k)` 获取最相关的文档片段。
+    - 直接调用 `vector_store.similarity_search(query, top_k)` 获取最相关的文档片段。
+    - 查询向量已由 `vector_store` 内部调用 `embedder.embed(query)` 生成。
     - 将片段拼接成字符串，每个片段标注来源（文件名、页码等，如果有）。
     - 返回拼接结果；如果没有结果，返回“未找到相关信息”。
 - **依赖包**：无额外（使用传入的模块）
@@ -215,7 +215,7 @@ pytest
   - `__init__(self, persist_dir: str, embedder: Any, collection_name: str = "doc_chunks")`：
     - 初始化 Chroma 客户端并连接持久化目录。
     - 创建或获取指定 collection（默认 `doc_chunks`）。
-    - 当前实现使用 `PersistantClient`（拼写与官方 `PersistentClient` 不一致），应作为下一步修正项。
+    - 当前实现使用 `PersistentClient`
     - 创建或获取 collection（如 `doc_chunks`）。
     - 保存 `embedder` 引用（用于查询时生成向量）。
   - `add_chunks(self, chunks: List[Dict])`：
