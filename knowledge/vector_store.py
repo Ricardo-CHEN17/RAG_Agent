@@ -83,6 +83,7 @@ class VectorStore:
                 formatted_results.append(doc_item)
 
             return formatted_results
+        
         except Exception as e:
             error_msg = f"Failed to perform similarity search: {str(e)}"
             logger.error(error_msg)
