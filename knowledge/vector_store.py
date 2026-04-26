@@ -1,4 +1,4 @@
-"""Persistent vector store adapter built on top of ChromaDB."""
+"""Persistent vector-store adapter built on top of ChromaDB."""
 
 import chromadb
 from chromadb import PersistentClient
@@ -11,7 +11,17 @@ class VectorStore:
     """ChromaDB-backed vector storage for document chunks and retrieval."""
 
     def __init__(self, persist_dir: str, embedder: Any, collection_name: str = "doc_chunks"):
-        """Initialize persistent client, collection, and embedding dependency."""
+        """Initialize persistent client, collection, and embedding dependency.
+
+        Args:
+            persist_dir: Filesystem path used by Chroma persistent storage.
+            embedder: Embedding service implementing ``embed`` and
+                ``embed_batch``.
+            collection_name: Logical collection name in Chroma.
+
+        Raises:
+            RuntimeError: If Chroma client or collection initialization fails.
+        """
         self.persist_dir = persist_dir
         self.embedder = embedder
 
@@ -27,7 +37,15 @@ class VectorStore:
             raise RuntimeError(error_msg) from e
 
     def add_chunks(self, chunks: List[Dict[str, Any]]) -> None:
-        """Embed and store chunk payloads in the configured collection."""
+        """Embed and store chunk payloads in the configured collection.
+
+        Args:
+            chunks: Chunk dictionaries containing ``id``, ``text``, and
+                optional ``metadata``.
+
+        Raises:
+            RuntimeError: If embedding generation or Chroma insertion fails.
+        """
         if not chunks:
             logger.warning("No chunks to add to the vector store.")
             return
@@ -54,7 +72,20 @@ class VectorStore:
             raise RuntimeError(error_msg) from e
         
     def similarity_search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-        """Return top-k closest chunks for a query using embedding similarity."""
+        """Return top-k closest chunks for a query using embedding similarity.
+
+        Args:
+            query: Natural-language retrieval query.
+            top_k: Maximum number of nearest chunks to return.
+
+        Returns:
+            List[Dict[str, Any]]: Flat list of retrieval results with id, text,
+                metadata, and distance fields.
+
+        Raises:
+            ValueError: If ``query`` is empty or ``top_k`` is not positive.
+            RuntimeError: If embedding or vector search fails.
+        """
         if not isinstance(query, str) or query.strip() == "":
             raise ValueError("Query must be a non-empty string.")
         if top_k <= 0:

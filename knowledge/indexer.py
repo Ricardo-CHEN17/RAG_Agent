@@ -1,4 +1,4 @@
-"""Offline directory indexer that chunks text files and stores embeddings."""
+"""Offline directory indexer for chunking files and persisting embeddings."""
 
 import os
 import hashlib
@@ -11,7 +11,16 @@ class Indexer:
     """Build and persist vector-store chunks from local text documents."""
 
     def __init__(self, vector_store: Any, chunk_size: int = 500, chunk_overlap: int = 50):
-        """Configure chunking behavior and store the vector store dependency."""
+        """Configure chunking behavior and store the vector-store dependency.
+
+        Args:
+            vector_store: Storage backend exposing ``add_chunks``.
+            chunk_size: Maximum number of characters per chunk.
+            chunk_overlap: Number of overlapping characters between chunks.
+
+        Raises:
+            ValueError: If ``chunk_overlap`` is not smaller than ``chunk_size``.
+        """
         if chunk_overlap >= chunk_size:
             raise ValueError("Chunk overlap must be smaller than chunk size.")
 
@@ -22,7 +31,14 @@ class Indexer:
         logger.info(f"Indexer initialized with chunk size: {chunk_size} and chunk overlap: {chunk_overlap}")
         
     def _read_text_file(self, file_path: str) -> str:
-        """Read UTF-8 text from file and return an empty string on failure."""
+        """Read UTF-8 text from a file.
+
+        Args:
+            file_path: Path to a text file.
+
+        Returns:
+            str: File text content, or an empty string when reading fails.
+        """
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 return f.read()
@@ -34,7 +50,14 @@ class Indexer:
             return ""
         
     def _split_text(self, text: str) -> List[str]:
-        """Split text into overlapping fixed-size chunks."""
+        """Split text into overlapping fixed-size chunks.
+
+        Args:
+            text: Source text content.
+
+        Returns:
+            List[str]: Ordered chunk list, possibly empty.
+        """
         if not text or not text.strip():
             logger.debug("No text to split.")
             return []
@@ -54,7 +77,15 @@ class Indexer:
         return chunks
     
     def index_directory(self, directory_path: str, file_extensions: List[str] = None) -> None:
-        """Index files under directory_path that match file_extensions."""
+        """Index matching files in a directory and push chunks to vector store.
+
+        Args:
+            directory_path: Root directory to traverse.
+            file_extensions: File suffix whitelist. Defaults to txt and md.
+
+        Raises:
+            ValueError: If ``directory_path`` is not a valid directory.
+        """
         if file_extensions is None:
             file_extensions = ['.txt', '.md']
         

@@ -14,7 +14,11 @@ class ToolCall:
     arguments: str
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize the tool call into OpenAI/Ollama-compatible dict format."""
+        """Serialize the tool call into OpenAI/Ollama-compatible dict format.
+
+        Returns:
+            Dict[str, Any]: Tool-call payload following common chat API schema.
+        """
         return {
             "id": self.id,
             "type": self.type,
@@ -36,7 +40,11 @@ class Message:
     name: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize the message while omitting optional fields when absent."""
+        """Serialize the message while omitting optional fields when absent.
+
+        Returns:
+            Dict[str, Any]: Message dictionary compatible with chat API input.
+        """
         data: Dict[str, Any] = {
             "role": self.role,
             "content": self.content,

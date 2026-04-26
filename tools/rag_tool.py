@@ -1,4 +1,4 @@
-"""RAG retrieval tool that formats vector search results for agent output."""
+"""RAG tool adapter that formats retrieval output for agent consumption."""
 
 import logging
 from typing import Any
@@ -9,13 +9,28 @@ class RAGTool:
     """Bridge between tool calls and vector-store-based knowledge retrieval."""
 
     def __init__(self, embedder: Any, vector_store: Any):
-        """Store retrieval dependencies used by search_knowledge."""
+        """Store retrieval dependencies used by ``search_knowledge``.
+
+        Args:
+            embedder: Embedding dependency injected for future extensibility.
+            vector_store: Vector store implementation that provides
+                ``similarity_search``.
+        """
         self.embedder = embedder
         self.vector_store = vector_store
         logger.info("RAGTool initialized with provided embedder and vector store.")
 
     def search_knowledge(self, query: str, top_k: int = 3) -> str:
-        """Search indexed knowledge and return formatted source-text paragraphs."""
+        """Search indexed knowledge and return formatted source-text paragraphs.
+
+        Args:
+            query: User query text.
+            top_k: Maximum number of relevant chunks to retrieve.
+
+        Returns:
+            str: Formatted retrieval text, a no-result notice, or an error
+                string beginning with "Error: " for invalid input or failures.
+        """
         if not query or not isinstance(query, str):
             return "Error: Invalid query provided."
 

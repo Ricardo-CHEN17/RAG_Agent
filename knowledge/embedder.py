@@ -1,4 +1,8 @@
-"""SentenceTransformer wrapper for single and batch text embeddings."""
+"""Embedding service wrapper around SentenceTransformer.
+
+This module centralizes model loading, device selection, and single/batch
+embedding calls used by the vector store layer.
+"""
 
 from sentence_transformers import SentenceTransformer
 from typing import List
@@ -13,7 +17,16 @@ class Embedder:
     """Wrapper around SentenceTransformer for single and batch embeddings."""
 
     def __init__(self, model_name: str = "all-MiniLM-L6-v2", device: str = None):
-        """Initialize the embedding model and choose the execution device."""
+        """Initialize the embedding model and select the execution device.
+
+        Args:
+            model_name: SentenceTransformer model identifier.
+            device: Explicit execution device name. When ``None``, the module
+                auto-selects from cuda, mps, then cpu.
+
+        Raises:
+            RuntimeError: If model initialization fails.
+        """
         self.model_name = model_name
 
         # Auto-select the best available device unless explicitly provided.
@@ -38,7 +51,19 @@ class Embedder:
             raise RuntimeError(error_msg) from e
 
     def embed(self, text: str) -> List[float]:
-        """Generate an embedding vector for a single text input."""
+        """Generate an embedding vector for a single text input.
+
+        Args:
+            text: Input text to embed.
+
+        Returns:
+            List[float]: Embedding vector as a Python list.
+
+        Raises:
+            TypeError: If ``text`` is not a string.
+            ValueError: If ``text`` is empty after trimming.
+            RuntimeError: If model inference fails.
+        """
         if not isinstance(text, str):
             raise TypeError("Input text must be a string.")
         if text.strip() == "":
@@ -53,7 +78,19 @@ class Embedder:
             raise RuntimeError(error_msg) from e
         
     def embed_batch(self, texts: List[str]) -> List[List[float]]:
-        """Generate embedding vectors for a list of texts in one model call."""
+        """Generate embedding vectors for multiple texts in one model call.
+
+        Args:
+            texts: Input text list to embed.
+
+        Returns:
+            List[List[float]]: Embedding matrix as a list of vectors.
+
+        Raises:
+            TypeError: If ``texts`` is not a list or contains non-string items.
+            ValueError: If any input string is empty after trimming.
+            RuntimeError: If model inference fails.
+        """
         if not isinstance(texts, list):
             raise TypeError("Input must be a list of strings.")
         if len(texts) == 0:

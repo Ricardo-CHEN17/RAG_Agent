@@ -1,3 +1,10 @@
+"""MySQL client utilities for environment-based initialization and basic CRUD execution.
+
+This module provides a thin wrapper around ``mysql.connector`` for local project use.
+It keeps execution APIs simple and returns sentinel values on runtime query/update
+failures to match the current tool-executor integration contract.
+"""
+
 import os
 import logging
 from typing import Dict, List
@@ -7,7 +14,23 @@ from mysql.connector import Error as MySQLError
 
 logger = logging.getLogger(__name__)
 
+
 def get_db_client_from_env() -> "MySQLClient":
+    """Create a ``MySQLClient`` from required environment variables.
+
+    Required variables:
+    - ``MYSQL_HOST``
+    - ``MYSQL_USER``
+    - ``MYSQL_PASSWORD``
+    - ``MYSQL_DATABASE``
+
+    Returns:
+        MySQLClient: An initialized and connected database client.
+
+    Raises:
+        RuntimeError: If required environment variables are missing or client
+            initialization fails.
+    """
     env_values = {
         "MYSQL_HOST": os.getenv("MYSQL_HOST"),
         "MYSQL_USER": os.getenv("MYSQL_USER"),
@@ -36,7 +59,21 @@ def get_db_client_from_env() -> "MySQLClient":
 
     
 class MySQLClient:
+    """Lightweight MySQL connector wrapper for query and update operations."""
+
     def __init__(self, host: str, user: str, password: str, database: str):
+        """Initialize and open a MySQL connection.
+
+        Args:
+            host: MySQL server host.
+            user: MySQL username.
+            password: MySQL password.
+            database: Default database name.
+
+        Raises:
+            ValueError: If any required argument is empty.
+            RuntimeError: If database connection fails.
+        """
         values = {
             "host": host,
             "user": user,
@@ -67,6 +104,16 @@ class MySQLClient:
             raise RuntimeError(error_msg) from e
 
     def execute_query(self, sql: str, params: tuple = ()) -> List[Dict]:
+        """Execute a read query and return rows as a list of dictionaries.
+
+        Args:
+            sql: SQL statement to execute.
+            params: Positional parameters for the SQL statement.
+
+        Returns:
+            List[Dict]: Query result rows. Returns an empty list for invalid SQL,
+                unavailable connection, or query execution errors.
+        """
         if not isinstance(sql, str) or sql.strip() == "":
             logger.error("SQL query must be a non-empty string.")
             return []
@@ -90,6 +137,16 @@ class MySQLClient:
             return []
         
     def execute_update(self, sql: str, params: tuple = ()) -> int:
+        """Execute a write statement and return affected row count.
+
+        Args:
+            sql: SQL update/insert/delete statement.
+            params: Positional parameters for the SQL statement.
+
+        Returns:
+            int: Number of affected rows. Returns ``0`` for invalid SQL,
+                unavailable connection, or execution errors.
+        """
         if not isinstance(sql, str) or sql.strip() == "":
             logger.error("SQL update statement must be a non-empty string.")
             return 0
@@ -114,6 +171,7 @@ class MySQLClient:
             return 0
         
     def close(self) -> None:
+        """Close the active MySQL connection if it is currently open."""
         if self.connection and self.connection.is_connected():
             try:
                 self.connection.close()

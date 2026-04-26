@@ -1,4 +1,8 @@
-"""File system helper tools used by the agent tool executor."""
+"""File-system tool helpers used by the agent tool executor.
+
+The methods in this module intentionally return human-readable strings so the
+tool executor and LLM loop can consume outputs directly.
+"""
 
 import os
 import logging
@@ -9,11 +13,19 @@ class FileTools:
     """Expose safe, read-only file operations for tool calls."""
 
     def __init__(self):
-        """Initialize FileTools instance."""
+        """Initialize a FileTools instance."""
         pass
 
     def list_files(self, path: str) -> str:
-        """Return sorted directory entries as a newline-separated string."""
+        """List directory entries and return a formatted newline-separated string.
+
+        Args:
+            path: Directory path to inspect.
+
+        Returns:
+            str: Formatted listing output, or an error string starting with
+                "Error: " when validation or OS operations fail.
+        """
         if not path or not isinstance(path, str):
             return f"Error: Invalid path provided."
         if not os.path.exists(path):
@@ -38,7 +50,17 @@ class FileTools:
         return result
 
     def read_file(self, file_path: str, max_chars: int = 10000) -> str:
-        """Read UTF-8 text content and truncate if it exceeds max_chars."""
+        """Read UTF-8 text content with optional truncation.
+
+        Args:
+            file_path: Text file path to read.
+            max_chars: Maximum number of characters returned before truncation.
+
+        Returns:
+            str: File content, possibly truncated with a suffix note, or an
+                error string starting with "Error: " for invalid inputs or IO
+                failures.
+        """
         if not file_path or not isinstance(file_path, str):
             return f"Error: Invalid file path provided."
         if not isinstance(max_chars, int) or max_chars <= 0:
