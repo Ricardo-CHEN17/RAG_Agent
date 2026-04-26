@@ -31,7 +31,7 @@ class VectorStore:
         if not chunks:
             logger.warning("No chunks to add to the vector store.")
             return
-        
+
         logger.info(f"Preparing to add {len(chunks)} chunks to VectorStore...")
 
         try:
@@ -59,7 +59,7 @@ class VectorStore:
             raise ValueError("Query must be a non-empty string.")
         if top_k <= 0:
             raise ValueError("top_k must be a positive integer.")
-        
+
         logger.info(f"Performing similarity search for query: '{query}' with top_k={top_k}")
 
         try:
