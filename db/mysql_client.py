@@ -1,6 +1,6 @@
 import os
 import logging
-from typing import Any, Dict, Optional, List
+from typing import Dict, List
 
 import mysql.connector
 from mysql.connector import Error as MySQLError
@@ -8,22 +8,28 @@ from mysql.connector import Error as MySQLError
 logger = logging.getLogger(__name__)
 
 def get_db_client_from_env() -> "MySQLClient":
-    host = os.getenv("MYSQL_HOST")
-    user = os.getenv("MYSQL_USER")
-    password = os.getenv("MYSQL_PASSWORD")
-    database = os.getenv("MYSQL_DATABASE")
-
-    missing_vars = [var for var in ["MYSQL_HOST", "MYSQL_USER", "MYSQL_PASSWORD", "MYSQL_DATABASE"] if not os.getenv(var)]
+    env_values = {
+        "MYSQL_HOST": os.getenv("MYSQL_HOST"),
+        "MYSQL_USER": os.getenv("MYSQL_USER"),
+        "MYSQL_PASSWORD": os.getenv("MYSQL_PASSWORD"),
+        "MYSQL_DATABASE": os.getenv("MYSQL_DATABASE"),
+    }
+    missing_vars = [name for name, value in env_values.items() if not value]
     if missing_vars:
         error_msg = f"Missing required environment variables for MySQLClient: {', '.join(missing_vars)}"
         logger.error(error_msg)
         raise RuntimeError(error_msg)
 
     try:
-        client = MySQLClient(host=host, user=user, password=password, database=database)
+        client = MySQLClient(
+            host=env_values["MYSQL_HOST"],
+            user=env_values["MYSQL_USER"],
+            password=env_values["MYSQL_PASSWORD"],
+            database=env_values["MYSQL_DATABASE"],
+        )
         logger.info("Successfully created MySQLClient from environment variables.")
         return client
-    except Exception as e:
+    except (ValueError, RuntimeError) as e:
         error_msg = f"Failed to create MySQLClient from environment variables: {str(e)}"
         logger.error(error_msg)
         raise RuntimeError(f"Failed to create MySQLClient: {e}") from e
@@ -31,7 +37,13 @@ def get_db_client_from_env() -> "MySQLClient":
     
 class MySQLClient:
     def __init__(self, host: str, user: str, password: str, database: str):
-        missing = [var for var in [host, user, database] if not var]
+        values = {
+            "host": host,
+            "user": user,
+            "password": password,
+            "database": database,
+        }
+        missing = [name for name, value in values.items() if not value]
         if missing:
             raise ValueError(f"Missing required arguments for MySQLClient: {', '.join(missing)}")
 
@@ -59,6 +71,10 @@ class MySQLClient:
             logger.error("SQL query must be a non-empty string.")
             return []
 
+        if not self.connection or not self.connection.is_connected():
+            logger.error("MySQL connection is not available.")
+            return []
+
         try:
             with self.connection.cursor(dictionary=True) as cursor:
                 cursor.execute(sql, params)
@@ -77,6 +93,10 @@ class MySQLClient:
         if not isinstance(sql, str) or sql.strip() == "":
             logger.error("SQL update statement must be a non-empty string.")
             return 0
+
+        if not self.connection or not self.connection.is_connected():
+            logger.error("MySQL connection is not available.")
+            return 0
         
         try:
             with self.connection.cursor() as cursor:
@@ -92,3 +112,11 @@ class MySQLClient:
             error_msg = f"Error executing update: {str(e)}"
             logger.error(error_msg)
             return 0
+        
+    def close(self) -> None:
+        if self.connection and self.connection.is_connected():
+            try:
+                self.connection.close()
+                logger.info("MySQL connection closed.")
+            except MySQLError as e:
+                logger.error(f"Error closing MySQL connection: {str(e)}")
