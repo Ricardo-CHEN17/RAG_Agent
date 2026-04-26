@@ -2,7 +2,6 @@
 
 import os
 import logging
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -33,9 +32,8 @@ class FileTools:
         
         if not entries:
             return f"Directory is empty: {path}"
-        
-        entries.sort()
-        result = f"files in {path}:\n" + "\n".join(entries)
+
+        result = f"files in {path}:\n" + "\n".join(sorted(entries))
         logger.info(f"Listed {len(entries)} entries in directory: {path}")
         return result
 
@@ -43,6 +41,8 @@ class FileTools:
         """Read UTF-8 text content and truncate if it exceeds max_chars."""
         if not file_path or not isinstance(file_path, str):
             return f"Error: Invalid file path provided."
+        if not isinstance(max_chars, int) or max_chars <= 0:
+            return f"Error: Invalid max_chars provided."
         if not os.path.exists(file_path):
             return f"Error: File not found: {file_path}"
         if not os.path.isfile(file_path):
@@ -50,7 +50,21 @@ class FileTools:
         
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()
+                # Read only enough to decide truncation, then stream-count the rest.
+                preview = f.read(max_chars + 1)
+                is_truncated = len(preview) > max_chars
+
+                if is_truncated:
+                    content = preview[:max_chars]
+                    origin_length = len(preview)
+                    while True:
+                        chunk = f.read(8192)
+                        if not chunk:
+                            break
+                        origin_length += len(chunk)
+                else:
+                    content = preview
+                    origin_length = len(content)
 
         except FileNotFoundError:
             logger.error(f"File not found: {file_path}")
@@ -65,10 +79,9 @@ class FileTools:
             logger.error(f"Error occurred while reading file: {e}")
             return f"Error: {e}"
         
-        if len(content) > max_chars:
-            origin_length = len(content)
+        if is_truncated:
             logger.warning(f"File content exceeds max character limit ({max_chars}). Truncating output.")
-            content = content[:max_chars] + f"\n\n[...Truncated at {max_chars} chars, original size: {origin_length} chars]"
+            content = content + f"\n\n[...Truncated at {max_chars} chars, original size: {origin_length} chars]"
         
         logger.info(f"Read file: {file_path} (length: {len(content)} chars)")
         return content
