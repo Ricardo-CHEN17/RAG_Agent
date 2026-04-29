@@ -45,3 +45,11 @@ Enable users to ask complex, multi-step information gathering tasks (e.g., “co
 ---
 
 *Version 1 delivers a functional command‑line agent with file system + RAG tools. Web UI follows in v2, multimodal input in v3.*
+
+## 6. Current Implementation Status
+
+This section records the gap between the one-pager and the current codebase so the plan stays honest.
+
+- **Already implemented**: `agent/message.py`, `tools/file_tools.py`, `tools/rag_tool.py`, `tools/mysql_tool.py`, `knowledge/embedder.py`, `knowledge/vector_store.py`, `knowledge/indexer.py`, and `db/mysql_client.py`.
+- **Partially implemented**: `tools/rag_tool.py` still uses an English no-result message and only surfaces `metadata.source`; `knowledge/indexer.py` currently supports only `.txt` and `.md`, and it has no CLI entry point yet.
+- **Still missing**: `main.py`, `agent/model_client.py`, `agent/controller.py`, and `tools/executor.py` are still empty, so the CLI REPL and the full agent loop are not yet wired together.

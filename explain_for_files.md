@@ -1,6 +1,6 @@
 # 项目文件功能说明
 
-本文档详细说明 `agentic_rag` 项目中每个文件需要实现的功能、函数、依赖以及文件间的调用关系。请按此说明进行开发。
+本文档用于说明 `agentic_rag` 项目中每个文件的设计目标、当前实现状态、依赖以及文件间的调用关系。本文会保留“应该实现什么”，同时补充“当前代码已经做到哪里”，避免设计文档和实际代码脱节。
 
 ---
 
@@ -18,7 +18,8 @@ EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
 CHROMA_PERSIST_DIR=./chroma_data
 
 - **依赖包**：`python-dotenv`（用于加载）
-- **被哪些文件读取**：`main.py`、`agent/model_client.py`、`db/mysql_client.py`、`knowledge/embedder.py`、`knowledge/vector_store.py`
+- **设计上应被哪些文件读取**：`main.py`、`agent/model_client.py`、`db/mysql_client.py`、`knowledge/embedder.py`、`knowledge/vector_store.py`
+- **当前实际情况**：`db/mysql_client.py` 已实现基于环境变量的客户端工厂函数；`main.py`、`agent/model_client.py` 目前为空，因此还没有真正完成 `.env` 加载与统一初始化。
 
 ---
 
@@ -53,6 +54,7 @@ pytest
 - `logging`
 - `agent.controller.AgentController`
 - **被谁调用**：直接运行 `python main.py`。
+- **当前实际情况**：文件为空，以上入口能力尚未实现。
 
 ---
 
@@ -61,6 +63,7 @@ pytest
 ### `agent/__init__.py`
 - **用途**：使 `agent` 成为一个 Python 包。
 - **内容**：可以为空，或导出主要类如 `from .controller import AgentController`。
+- **当前实际情况**：为空。
 
 ---
 
@@ -73,6 +76,7 @@ pytest
 - `@dataclass class ToolCall`（可选）：更严格地表示 `tool_calls` 中的每一项。
 - **依赖包**：`dataclasses`、`typing`
 - **被谁导入**：`agent/controller.py`、`tools/executor.py`
+- **当前实际情况**：`Message` 和 `ToolCall` 已实现，`ToolCall.to_dict()` 已按 OpenAI/Ollama 兼容格式输出，`Message.to_dict()` 会按需省略空字段。
 
 ---
 
@@ -88,6 +92,7 @@ pytest
     - 返回解析后的 JSON 响应（包含 `message` 字段，其中可能有 `tool_calls`）。
 - **依赖包**：`requests`、`json`、`os`（读取环境变量）
 - **被谁调用**：`agent/controller.py`
+- **当前实际情况**：文件为空，Ollama 调用封装尚未实现。
 
 ---
 
@@ -112,6 +117,7 @@ pytest
 - `agent.model_client.OllamaClient`
 - `tools.executor.ToolExecutor`
 - **被谁调用**：`main.py`
+- **当前实际情况**：文件为空，Agent 主循环、tool_calls 解析与迭代执行尚未实现。
 
 ---
 
@@ -119,6 +125,7 @@ pytest
 
 ### `tools/__init__.py`
 - **用途**：包声明，可导出 `ToolExecutor`。
+- **当前实际情况**：为空。
 
 ---
 
@@ -135,6 +142,7 @@ pytest
 - **依赖包**：`json`、`logging`
 - **被谁调用**：`agent/controller.py`
 - **被谁导入**：它导入 `tools.file_tools`、`tools.rag_tool`、`tools.mysql_tool` 中的具体类。
+- **当前实际情况**：文件为空，工具路由层尚未实现。
 
 ---
 
@@ -151,6 +159,7 @@ pytest
     - 返回文件内容字符串。
 - **依赖包**：`os`、`logging`
 - **被谁调用**：`tools/executor.py`
+- **当前实际情况**：已实现，支持目录列出、文件读取、输入校验、权限/不存在错误处理，以及大文件截断提示。
 
 ---
 
@@ -167,6 +176,7 @@ pytest
 - **依赖包**：无额外（使用传入的模块）
 - **被谁调用**：`tools/executor.py`
 - **注意**：该工具需要提前运行 `knowledge/indexer.py` 建立索引，否则返回空。
+- **当前实际情况**：已实现基础检索封装，但当前无结果提示为英文 `No relevant information found.`，输出元数据目前主要使用 `metadata.source`，尚未额外拼接页码等更丰富来源信息。
 
 ---
 
@@ -180,6 +190,7 @@ pytest
     - 执行查询，将结果格式化为表格或 JSON 字符串返回。
 - **依赖包**：依赖 `db.mysql_client`
 - **被谁调用**：`tools/executor.py`
+- **当前实际情况**：已实现。`MySQLTool.query()` 已加入只允许 `SELECT` 的安全检查，并将查询结果格式化为表格字符串返回。
 
 ---
 
@@ -187,6 +198,7 @@ pytest
 
 ### `knowledge/__init__.py`
 - **用途**：包声明。
+- **当前实际情况**：为空。
 
 ---
 
@@ -205,6 +217,7 @@ pytest
     - 记录批量向量化耗时日志。
 - **依赖包**：`sentence_transformers`
 - **被谁调用**：`knowledge/vector_store.py`（存储时）、`tools/rag_tool.py`（查询时）
+- **当前实际情况**：已实现，包含设备自动选择、输入校验、批量向量化与耗时日志；模块内部还额外使用了 `torch` 来判断可用设备。
 
 ---
 
@@ -233,6 +246,7 @@ pytest
 - **当前状态补充（基于现有代码）**：
   - `add_chunks` 与 `similarity_search` 已包含异常捕获和 `RuntimeError` 包装。
   - `similarity_search` 已对 `query` 和 `top_k` 做参数校验。
+- **当前实际情况**：已实现，使用 `PersistentClient` 和默认集合 `doc_chunks`，检索结果会被扁平化为包含 `id`、`text`、`metadata`、`distance` 的列表。
 
 ---
 
@@ -242,7 +256,7 @@ pytest
 - `class Indexer`：
   - `__init__(self, vector_store: VectorStore, chunk_size: int = 500, chunk_overlap: int = 50)`。
   - `index_directory(self, directory_path: str, file_extensions: List[str] = ['.txt', '.md', '.pdf'])`：
-    - 遍历目录，对每个支持的文件读取文本（PDF 可能需要额外库，v1 可先只支持 .txt/.md）。
+    - 遍历目录，对每个支持的文件读取文本（当前代码只支持 `.txt` / `.md`，`.pdf` 仍未实现）。
     - 将文本分块（可用简单的按字符数切分，或使用 `langchain.text_splitter` 但避免引入过重依赖，手写递归分割）。
     - 为每个块生成 ID（如 `filepath_chunk_index`）和元数据。
     - 调用 `vector_store.add_chunks(chunks)`。
@@ -250,6 +264,7 @@ pytest
 - **依赖包**：`os`、`glob`、`hashlib`（可选，用于生成 ID）
 - **被谁调用**：可以单独运行脚本（如 `python -m knowledge.indexer --path ./docs`），或在 `main.py` 启动时检查是否需要更新索引。
 - **注意**：索引过程可能较慢，建议单独运行。
+- **当前实际情况**：已实现分块、文件遍历与入库逻辑，但当前没有模块级 CLI 入口，且默认扩展名仅为 `.txt` 和 `.md`。
 
 ---
 
@@ -257,6 +272,7 @@ pytest
 
 ### `db/__init__.py`
 - **用途**：包声明。
+- **当前实际情况**：为空。
 
 ---
 
@@ -271,6 +287,7 @@ pytest
 - **辅助函数**：`get_db_client_from_env()` 从 `.env` 读取配置并返回实例。
 - **依赖包**：`mysql.connector`
 - **被谁调用**：`tools/mysql_tool.py`（可选）、`main.py`（记录会话）
+- **当前实际情况**：已实现连接、查询、更新、关闭与环境变量工厂函数；`get_db_client_from_env()` 读取的是进程环境变量（`os.getenv`），并不负责自己加载 `.env` 文件。
 
 ---
 
@@ -288,6 +305,7 @@ pytest
 - 模拟返回 tool_calls，验证 `tool_executor.execute` 被调用且结果被追加到消息列表。
 - 测试超过最大迭代次数时返回超时提示。
 - **依赖包**：`pytest`、`unittest.mock`
+- **当前实际情况**：文件为空，尚未编写这些测试。
 
 ### `tests/test_tools.py`
 - **用途**：测试文件工具和 RAG 工具的基本功能。
@@ -295,30 +313,32 @@ pytest
 - `FileTools.list_files` 对存在的目录返回正确列表，对不存在的目录返回错误信息。
 - `FileTools.read_file` 正常读取，文件过大时截断。
 - `RAGTool.search_knowledge` 在空库时返回适当提示，在有数据时返回片段。
+- **当前实际情况**：文件为空，尚未编写这些测试。
 
 ### `tests/test_rag.py`
 - **用途**：测试 `knowledge/vector_store.py` 和 `knowledge/indexer.py`。
 - **测试点**：
 - 添加文档块后能正确检索到。
 - 索引器能正确分块并生成元数据。
+- **当前实际情况**：文件为空，尚未编写这些测试。
 
 ---
 
 ## 文件间调用关系总结
 main.py
-└─> agent.controller.AgentController
-├─> agent.model_client.OllamaClient
-└─> tools.executor.ToolExecutor
-├─> tools.file_tools.FileTools
-├─> tools.rag_tool.RAGTool
-│ ├─> knowledge.embedder.Embedder
-│ └─> knowledge.vector_store.VectorStore
-└─> (可选) tools.mysql_tool.MySQLTool
-└─> db.mysql_client.MySQLClient
+└─> agent.controller.AgentController（当前为空，尚未接入）
+├─> agent.model_client.OllamaClient（当前为空，尚未接入）
+└─> tools.executor.ToolExecutor（当前为空，尚未接入）
+├─> tools.file_tools.FileTools（已实现）
+├─> tools.rag_tool.RAGTool（已实现）
+│ ├─> knowledge.embedder.Embedder（已实现）
+│ └─> knowledge.vector_store.VectorStore（已实现）
+└─> (可选) tools.mysql_tool.MySQLTool（已实现）
+└─> db.mysql_client.MySQLClient（已实现）
 
 
-- **数据流向**：用户输入 → `main.py` → `AgentController.run()` → 循环调用 `OllamaClient.chat()` → 解析 tool_calls → `ToolExecutor.execute()` → 工具返回结果 → 继续循环 → 最终答案返回 `main.py` 打印。
-- **环境变量**：`.env` 被 `main.py`、`model_client.py`、`mysql_client.py`、`embedder.py`、`vector_store.py` 读取。
+- **数据流向**：设计目标仍是用户输入 → `main.py` → `AgentController.run()` → 循环调用 `OllamaClient.chat()` → 解析 tool_calls → `ToolExecutor.execute()` → 工具返回结果 → 继续循环 → 最终答案返回 `main.py` 打印。当前代码已经完成了消息结构、文件工具、RAG 工具、MySQL 工具和数据库客户端；仍缺少主循环与工具路由层。
+- **环境变量**：`.env` 目前只有 `db/mysql_client.py` 对应的环境变量读取逻辑已经落地；`main.py` / `model_client.py` / 向量层的统一加载还未实现。
 - **日志**：所有模块使用 `logging.getLogger(__name__)`，由 `main.py` 统一配置输出到 `logs/`。
 
 ---
@@ -335,23 +355,22 @@ main.py
 6. `tools/__init__.py`：建立包结构。
 7. `knowledge/__init__.py`：建立包结构。
 8. `db/__init__.py`：建立包结构。
-9. `agent/message.py`：先实现 `Message`/`ToolCall` 数据结构，供后续模型调用与工具回传统一使用。
-10. `knowledge/embedder.py`：向量化能力已初步实现（含设备自动选择、输入校验、错误处理），下一步补充更完整单测。
-11. `knowledge/vector_store.py`：向量存储与检索已初步实现（含参数校验、结果格式化、异常处理）。
-12. `knowledge/vector_store.py` 完成回归测试。
-13. `knowledge/indexer.py`：实现离线建库流程（依赖 vector_store）。
-14. `tools/file_tools.py`：实现文件系统工具（低耦合，先完成便于联调）。
-15. `tools/rag_tool.py`：实现检索工具（依赖 embedder/vector_store）。
-16. `db/mysql_client.py`：实现数据库客户端（v1 可完成基础能力，供可选工具使用）。
-17. `tools/mysql_tool.py`：实现只读 SQL 工具（v1 可选，放在后面）。
-18. `tools/executor.py`：实现工具路由中心，串联 file/rag/mysql 三类工具。
-19. `agent/model_client.py`：实现 Ollama chat + tools 调用封装。
-20. `agent/controller.py`：实现 Agent 主循环（调用 model_client + tool_executor）。
-21. `main.py`：实现 REPL 入口、日志初始化、依赖装配与运行流程。
-22. `tests/test_tools.py`：优先验证文件工具与 RAG 工具。
-23. `tests/test_rag.py`：验证向量存储与索引流程。
-24. `tests/test_controller.py`：验证主循环、工具调用迭代、超时分支。
-25. `logs/`：无需手写文件，运行 `main.py` 后确认日志文件自动生成。
+9. `agent/message.py`：已完成基础消息结构，下一步是对接模型与工具调用。
+10. `knowledge/embedder.py`：已完成向量化能力，下一步补充更完整单测。
+11. `knowledge/vector_store.py`：已完成向量存储与检索，下一步补充回归测试。
+12. `knowledge/indexer.py`：已完成离线建库流程，但仍缺少 `.pdf` 支持与 CLI 入口。
+13. `tools/file_tools.py`：已完成文件系统工具。
+14. `tools/rag_tool.py`：已完成检索工具，但返回文案与来源细节仍可继续完善。
+15. `db/mysql_client.py`：已完成数据库客户端，供可选工具后续接入。
+16. `tools/mysql_tool.py`：已完成，只读 SQL 工具可直接复用。
+17. `tools/executor.py`：仍未实现，工具路由中心是当前缺口之一。
+18. `agent/model_client.py`：仍未实现，Ollama chat + tools 调用封装尚未接入。
+19. `agent/controller.py`：仍未实现，Agent 主循环是当前核心缺口。
+20. `main.py`：仍未实现，REPL 入口、日志初始化和依赖装配还未落地。
+21. `tests/test_tools.py`：先验证文件工具与 RAG 工具。
+22. `tests/test_rag.py`：验证向量存储与索引流程。
+23. `tests/test_controller.py`：验证主循环、工具调用迭代、超时分支。
+24. `logs/`：无需手写文件，运行入口后确认日志文件自动生成。
 
 补充建议：
 - 每完成一个模块就先写对应测试再进入下一模块，问题定位成本最低。
