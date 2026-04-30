@@ -1,6 +1,5 @@
 """Persistent vector-store adapter built on top of ChromaDB."""
 
-import chromadb
 from chromadb import PersistentClient
 import logging
 from typing import List, Dict, Any
